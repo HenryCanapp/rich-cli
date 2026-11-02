@@ -2,6 +2,7 @@ import click
 from click import Command
 from click.decorators import FC, Parameter
 from click.testing import CliRunner
+from rich.console import Console
 
 
 class DuplicateOptionsError(ValueError):
@@ -39,3 +40,22 @@ def test_duplicate_option_flags_raises_exception(monkeypatch):
 
     runner = CliRunner()
     runner.invoke(main)
+
+
+def test_render_csv_treats_bracketed_text_as_literal(tmp_path):
+    from rich_cli.__main__ import render_csv
+
+    csv_file = tmp_path / "bracketed.csv"
+    csv_file.write_text(
+        "Header [red]text[/red],Value\n"
+        "[red]text[/red],[/bold]\n",
+        encoding="utf-8",
+    )
+
+    table = render_csv(str(csv_file))
+    console = Console(record=True, force_terminal=False, color_system=None)
+    console.print(table)
+    output = console.export_text()
+    assert "Header [red]text[/red]" in output
+    assert "[red]text[/red]" in output
+    assert "[/bold]" in output
